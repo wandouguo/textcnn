@@ -18,7 +18,7 @@ class CnnModel(object):
                                          dtype=tf.float32,
                                          trainable=True)
 
-        self.cnn_kernel = [5, self.word_dim, 1, 3]  # 目的在于保证在word_dim方向不移动
+        self.cnn_kernel = [5, self.word_dim, 1, 256]  # 目的在于保证在word_dim方向不移动
         self.pool_kernel = [1, 5, 1, 1]
         self.input = tf.placeholder(shape=(self.batch, self.max_len), dtype=tf.int32)
         self.label_num = 10
@@ -54,7 +54,7 @@ class CnnModel(object):
 
         embedding = self.embedding_layer(self.input)
         embedding_dropout = self.dropout_layer(embedding)
-        kernel = tf.Variable(tf.random_normal(shape=self.cnn_kernel, mean=0, stddev=0.1),
+        kernel = tf.Variable(tf.random_normal(shape=self.cnn_kernel, mean=0, stddev=0.05),
                              dtype=tf.float32)
         cnn_out = self.cnn_layer(embedding_dropout, kernel)
         max_out = self.maxpool_layer(cnn_out, self.pool_kernel)  # [batch, max_heigth,1,max_number]
@@ -65,7 +65,7 @@ class CnnModel(object):
         y_pred_cls = tf.argmax(soft_max, 1)
         loss = tf.nn.softmax_cross_entropy_with_logits(labels=self.label, logits=self.logits)
         correct_pred = tf.equal(tf.argmax(self.label, 1), y_pred_cls)
-        loss = tf.reduce_sum(loss)
+        loss = tf.reduce_mean(loss)
 
         opt = tf.train.AdamOptimizer(learning_rate=0.001).minimize(loss=loss)
 
@@ -76,3 +76,18 @@ class CnnModel(object):
 if __name__ == '__main__':
     model = CnnModel(None, vocab_size=5)
     model.build_model()
+    x = [[[1, 2, 3],
+          [4, 3, 1]],
+         [[3, 2, 1],
+          [2, 3, 1]]]
+
+    x = np.array(x)
+    print(x, x.shape)
+    y = np.reshape(x, (2, -1))
+    print(y, y.shape)
+    # tf.nn.conv1d()
+    # tf.layers.conv1d()
+    z = (3,) * 3
+    print("z", z)
+    kernel_shape = (3,) + (2, 3)
+    print(kernel_shape)
