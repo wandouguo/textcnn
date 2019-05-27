@@ -38,10 +38,13 @@ def build_vocab(train_dir, vocab_dir, vocab_size=5000):
         all_data.extend(content)
 
     counter = Counter(all_data)
+    if vocab_size == None:
+        vocab_size = len(all_data)
+
     count_pairs = counter.most_common(vocab_size - 1)
     words, _ = list(zip(*count_pairs))
     # 添加一个 <PAD> 来将所有文本pad为同一长度
-    words = ['<PAD>'] + list(words)+['<UNK>']
+    words = ['<PAD>'] + list(words) + ['<UNK>']
 
     open_file(vocab_dir, mode='w').write('\n'.join(words) + '\n')
 
@@ -99,3 +102,8 @@ def batch_iter(x, y, batch_size=64):
         if end_id - start_id < batch_size:
             break
         yield x_shuffle[start_id:end_id], y_shuffle[start_id:end_id]
+
+
+if __name__ == "__main__":
+    build_vocab("./cnews.train.txt", "vocab.txt", vocab_size=None)
+    pass
