@@ -41,7 +41,7 @@ def build_vocab(train_dir, vocab_dir, vocab_size=5000):
     count_pairs = counter.most_common(vocab_size - 1)
     words, _ = list(zip(*count_pairs))
     # 添加一个 <PAD> 来将所有文本pad为同一长度
-    words = ['<PAD>'] + list(words)
+    words = ['<PAD>'] + list(words)+['<UNK>']
 
     open_file(vocab_dir, mode='w').write('\n'.join(words) + '\n')
 
