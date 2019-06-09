@@ -22,7 +22,9 @@ class CnnModel(object):
         self.pool_kernel = [1, 5, 1, 1]
         self.input = tf.placeholder(shape=(self.batch, self.max_len), dtype=tf.int32)
         self.label_num = 10
+        self.hidden_num = 128
         self.label = tf.placeholder(shape=(self.batch, self.label_num), dtype=tf.int32)
+        self.dropout_rate = tf.placeholder(dtype=tf.float32)
         self.session = tf.Session()
         pass
 
@@ -30,7 +32,7 @@ class CnnModel(object):
         with tf.name_scope(name=name):
             return tf.nn.embedding_lookup(self.embedding, input, name=name)
 
-    def dropout_layer(self, input, drop_rate=0.1, name="dropout"):
+    def dropout_layer(self, input, drop_rate, name="dropout"):
         with tf.name_scope(name=name):
             return tf.nn.dropout(input, 1 - drop_rate, name=name)
 
@@ -53,14 +55,17 @@ class CnnModel(object):
     def build_model(self):
 
         embedding = self.embedding_layer(self.input)
-        embedding_dropout = self.dropout_layer(embedding)
+        embedding_dropout = self.dropout_layer(embedding, self.dropout_rate)
         kernel = tf.Variable(tf.random_normal(shape=self.cnn_kernel, mean=0, stddev=0.05),
                              dtype=tf.float32)
         cnn_out = self.cnn_layer(embedding_dropout, kernel)
         max_out = self.maxpool_layer(cnn_out, self.pool_kernel)  # [batch, max_heigth,1,max_number]
         max_out = tf.squeeze(max_out, axis=-2)  ## [batch, max_heigth,max_number]
         input = tf.reshape(max_out, shape=[self.batch, -1])
-        self.logits = self.dense_lyaer(input, self.label_num)
+        dense = self.dense_lyaer(input, self.hidden_num, name="fc")
+        drop_out = self.dropout_layer(dense, self.dropout_rate, name="dense_drop")
+        fc = tf.nn.relu(drop_out)
+        self.logits = self.dense_lyaer(fc, self.label_num)
         soft_max = tf.nn.softmax(self.logits)
         y_pred_cls = tf.argmax(soft_max, 1)
         loss = tf.nn.softmax_cross_entropy_with_logits(labels=self.label, logits=self.logits)
