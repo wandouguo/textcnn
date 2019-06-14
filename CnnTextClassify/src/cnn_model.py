@@ -14,12 +14,12 @@ class CnnModel(object):
         else:
             self.vocab_size = vocab_size
             self.word_dim = 128
-            self.embedding = tf.Variable(tf.random_normal(shape=(self.vocab_size, self.word_dim), mean=0, stddev=0.1),
-                                         dtype=tf.float32,
-                                         trainable=True)
+            self.embedding = tf.get_variable("embedding", shape=(self.vocab_size, self.word_dim),
+                                             dtype=tf.float32,
+                                             trainable=True)
 
         self.cnn_kernel = [5, self.word_dim, 1, 256]  # 目的在于保证在word_dim方向不移动
-        self.pool_kernel = [1, 5, 1, 1]
+        self.pool_kernel = [1, self.max_len - 5 + 1, 1, 1]
         self.input = tf.placeholder(shape=(self.batch, self.max_len), dtype=tf.int32)
         self.label_num = 10
         self.hidden_num = 128
@@ -41,8 +41,9 @@ class CnnModel(object):
         ## kernel =[heitht,with,kernerl_number]
         # return : [batch,out_heigth,out_with,kernel_number]
         with tf.name_scope(name=name):
-            cnn_input = tf.expand_dims(input, axis=-1)
-            return tf.nn.conv2d(cnn_input, kernel, [1, 1, 1, 1], padding="VALID", name=name)
+            # cnn_input = tf.expand_dims(input, axis=-1)
+            # `[batch, in_height, in_width, in_channels]
+            return tf.nn.conv2d(input, kernel, [1, 1, 1, 1], padding="VALID", name=name)
 
     def maxpool_layer(self, input, pool_kernel, name="max_pool"):
         with tf.name_scope(name=name):
@@ -55,16 +56,24 @@ class CnnModel(object):
     def build_model(self):
 
         embedding = self.embedding_layer(self.input)
-        embedding_dropout = self.dropout_layer(embedding, self.dropout_rate)
-        kernel = tf.Variable(tf.random_normal(shape=self.cnn_kernel, mean=0, stddev=0.05),
-                             dtype=tf.float32)
-        cnn_out = self.cnn_layer(embedding_dropout, kernel)
+        print("embedding ", embedding.shape)
+        cnn_input = tf.expand_dims(embedding, axis=-1)
+        print("cnn_input ", cnn_input.shape)
+        # embedding_dropout = self.dropout_layer(embedding, self.dropout_rate)
+        kernel = tf.get_variable("kernel_filter", shape=self.cnn_kernel,
+                                 dtype=tf.float32)
+        cnn_out = self.cnn_layer(cnn_input, kernel, name="cnn")
+        print("cnn_out ", cnn_out.shape)
         max_out = self.maxpool_layer(cnn_out, self.pool_kernel)  # [batch, max_heigth,1,max_number]
+        print("max_out ", max_out.shape)
         max_out = tf.squeeze(max_out, axis=-2)  ## [batch, max_heigth,max_number]
-        input = tf.reshape(max_out, shape=[self.batch, -1])
+        print("max_out ", max_out.shape)
+        input = tf.squeeze(max_out, axis=-2)
+        print("input ", input.shape)
         dense = self.dense_lyaer(input, self.hidden_num, name="fc")
         drop_out = self.dropout_layer(dense, self.dropout_rate, name="dense_drop")
         fc = tf.nn.relu(drop_out)
+        print("fc ", fc.shape)
         self.logits = self.dense_lyaer(fc, self.label_num)
         soft_max = tf.nn.softmax(self.logits)
         y_pred_cls = tf.argmax(soft_max, 1)

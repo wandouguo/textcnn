@@ -11,7 +11,8 @@ train_file = "../data/cnews.train.txt"
 val_file = "../data/cnews.val.txt"
 vocab_file = "../data/cnews.vocab.txt"
 words, word2id = read_vocab(vocab_file)
-vocab_size = 5000
+vocab_size = len(word2id)
+print(vocab_size)
 category, cat2id = read_category()
 max_seq_len = 600
 x_pad, y_pad = process_file(train_file, word2id, cat2id, max_seq_len)
@@ -21,10 +22,9 @@ session = model.session
 opt, loss, pred, acc = model.build_model()
 init = tf.global_variables_initializer()
 session.run(tf.local_variables_initializer())
-session.run(tf.initialize_all_variables())
 session.run(init)
 
-for epoch in range(4):
+for epoch in range(10):
 
     print("epoch ", epoch)
     i = 0
@@ -33,7 +33,7 @@ for epoch in range(4):
         _, batch_loss, batch_pred, batch_acc = session.run([opt, loss, pred, acc],
                                                            feed_dict={model.input: input_batch,
                                                                       model.label: label_batch,
-                                                                      model.dropout_rate: 0.1})
+                                                                      model.dropout_rate: 0.5})
         i = i + 1
         if i % 100 == 0:
             print("step={},loss={},epoch={},acc={}".format(i, batch_loss, epoch, batch_acc))
